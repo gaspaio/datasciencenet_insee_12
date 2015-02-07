@@ -125,14 +125,26 @@ class TestRuleEngine(object):
         (u"INFORMATICIENINHO","INFORMATIQ"),
     ]
 
+    # Post-process labels
+    postprocess_data = [
+        (u"$A COUCOU BINGO", u"COUCOU BINGO CATEGORIE A"),
+        (u"$C COUCOU BINGO", u"COUCOU BINGO CATEGORIE C"),
+        (u"COUCOU $A BINGO $A", u"COUCOU BINGO CATEGORIE A"),
+        (u"$Z COUCOU BINGO", u"COUCOU BINGO"),
+        (u"$W COUCOU BINGO", u"COUCOU BINGO"),
+        (u"CATEGORIE1 BINGO", u"CATEGORIE 1 BINGO"),
+        (u"GRADE1 BINGO", u"GRADE 1 BINGO"),
+        (u"COUCOU GRADE1 BINGO", u"COUCOU GRADE 1 BINGO"),
+    ]
+
 
     @classmethod
     def setupClass(self):
         self.engine = RuleEngine()
 
-    def test_prepare_label(self):
+    def test_preprocess(self):
         for item in TestRuleEngine.prepare_data:
-            yield self.check_prepare_label, item[0], item[1]
+            yield self.check_preprocess, item[0], item[1]
 
     def test_compile(self):
         for case in TestRuleEngine.rule_cases:
@@ -141,6 +153,15 @@ class TestRuleEngine(object):
     def test_apply_all(self):
         for case in TestRuleEngine.ruleset_apply_data:
             yield self.check_apply_all, case
+
+    def test_postprocess(self):
+        for case in TestRuleEngine.postprocess_data:
+            yield self.check_postprocess, case
+
+    def check_postprocess(self, case):
+        out = self.engine.post_process(case[0])
+        errmsg = '"{}" became "{}" instead of "{}"'.format(case[0], out, case[1])
+        assert out == case[1], errmsg
 
     def check_apply_all(self, case):
         out = self.engine.apply_all(case[0])
@@ -153,7 +174,7 @@ class TestRuleEngine(object):
         errmsg = 'applying rule {}: "{}" became "{}" instead of "{}"'.format(case[0], case[1], out, case[2])
         assert out == case[2], errmsg
 
-    def check_prepare_label(self, label, expected):
-        ret = self.engine.prepare_label(label)
+    def check_preprocess(self, label, expected):
+        ret = self.engine.pre_process(label)
         errmsg = u'{} became {} instead of {}'.format(label, ret, expected)
         assert ret == expected, errmsg

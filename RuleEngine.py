@@ -48,6 +48,8 @@ class RuleEngine(object):
     # Pre-compiled utilitary regexes
     whitespace_cleanup = re.compile('  +')
     ignored_chars = re.compile('[^A-Z0-9& ]')
+    categs = re.compile(".*\$([A-Z])")
+    grade_categ_ws = re.compile("(?P<nm>CATEGORIE|GRADE)(?P<nb>[0-9])")
 
     def __init__(self, rule_file='data/synonymes.csv'):
         self.rules = None
@@ -76,19 +78,41 @@ class RuleEngine(object):
         return RuleEngine.whitespace_cleanup.sub(' ', result).strip()
 
     def apply_all(self, label):
-        clean_label = self.prepare_label(label)
-        return reduce(lambda acc, y: self.apply(y[3], y[4], acc), self.rules.itertuples(), clean_label)
+        clean_label = self.pre_process(label)
+        label = reduce(lambda acc, y: self.apply(y[3], y[4], acc), self.rules.itertuples(), clean_label)
+        return self.post_process(label)
 
-    def prepare_label(self, label):
+    def pre_process(self, label):
         """Cleanup the label: upper, remove exotic chars, transliterate."""
         # TRANSLITERATE
         # Basic transliteration. Doesn't correctly handle wierd cases like ^2 (from test file)
-        label = unidecode(label)
+        #label = unidecode(label)
         label = label.upper()
         # Remove out of range chars & extra whitespaces
         label = RuleEngine.ignored_chars.sub(' ', label)
         # remove extra whitespaces
         label = RuleEngine.whitespace_cleanup.sub(' ',label).strip()
+
+        return label
+
+    def post_process(self, label):
+
+        changed = False
+        # $A-$D are placed by the ruleset in the beginning of the label,
+        # but in the referenciel they're always at the end of the label.
+        # $W is never present in the test set or training set. Remove it.
+        # $Z : FP ? AGENT ? -> Remove for now
+        ms = RuleEngine.categs.match(label)
+        if ms:
+            lt = ms.groups()[0]
+            label = label.replace("$" + lt, "")
+            if lt in ['A', 'B', 'C', 'D']:
+                 label += " CATEGORIE " + lt
+            label = RuleEngine.whitespace_cleanup.sub(' ', label).strip()
+
+        # GRADE[0-9] -> GARDE [0-9]
+        # CATEGORIE[0-9] -> CATEGORIE [0-9]
+        label = RuleEngine.grade_categ_ws.sub("\g<nm> \g<nb>", label)
 
         return label
 

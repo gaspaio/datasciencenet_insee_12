@@ -1,10 +1,31 @@
 # -*- coding: utf-8 -*-
 
 import pandas as pd
-from RuleEngine import RuleEngine
 import timeit
 
+from RuleEngine import RuleEngine
+
+
+def read_testset():
+    test_set = pd.DataFrame.from_csv('data/professions_non_traitees.csv', sep=';', index_col=None)
+    test_set.columns = [u'id', u'labels']
+    test_set.labels = test_set['labels'].apply(lambda x: x.encode('utf8'))
+    return test_set
+
+
+def get_expected_codes(expected_labels, ref):
+
+    def get_indexes(l, r):
+        d = r.professions[r.professions.label_orig == l]
+        if d.empty: return None
+        else: return r.professions.loc[d.index[0]].code
+
+    return expected_labels.apply(get_indexes,r = ref)
+
+
 class InseeRunner(object):
+
+    testset_filename = "data/professions_non_traitees.csv"
 
     def __init__(self, matcher, inputs, processed_inputs = [], expected = None, k=3):
         self.matcher = matcher
@@ -16,20 +37,50 @@ class InseeRunner(object):
             data['labels_processed'] = processed_inputs
         self.data = pd.DataFrame(data)
 
-        self.data.columns = ['labels_input']
+#        self.data.columns = ['labels_input']
 
-        # A Series of correct labels
+        # A Series of correct codes
         self.expected = expected
         self.k = k
 
         self.result_cols = []
         for i in range(self.k):
-            self.result_cols.append('libelle_' + str(i+1))
             self.result_cols.append('code_' + str(i+1))
+            self.result_cols.append('libelle_' + str(i+1))
             self.result_cols.append('score_' + str(i+1))
 
         self.results = None
         self.timer = {}
+
+
+    def predict(self, force_apply_rules=False):
+        self.start_timer('predict')
+
+        if 'labels_processed' not in self.data or force_apply_rules:
+            self.apply_rules()
+
+        # Gives a Series of match lists of tuples (yes, it's overly complicated)
+        res = self.data.labels_processed.apply(self.matcher.match, k=self.k)
+        # Build return dataframe
+        self.results = pd.DataFrame(res.apply(self.flatten).tolist(), columns=self.result_cols)
+
+        self.stop_timer('predict')
+
+
+    def trainperf(self):
+        predicted = self.results['code_1']
+        right = sum([(bool(code) and code == self.expected[idx]) \
+                        for idx, code in enumerate(predicted)])
+        expected = self.expected
+        wrong = sum([(bool(code) and code != expected[idx]) \
+                        for idx, code in enumerate(predicted)])
+        return {
+            'right guesses': right,
+            'wrong guesses': wrong,
+            'set size': len(expected),
+            'accuracy': float(right)/len(expected),
+            'time': self.time('predict')
+        }
 
 
     def predict_label(self, label):
@@ -42,42 +93,7 @@ class InseeRunner(object):
         self.data['labels_processed'] = self.data.labels_input.apply(self.rules.apply_all)
         self.stop_timer('process_labels')
 
-
-    def predict(self, force_apply_rules=False):
-        self.start_timer('predict')
-
-        if 'labels_processed' not in self.data or force_apply_rules:
-            self.apply_rules()
-
-        res = map(self.flaten_matches, self.data.labels_processed.apply(self.matcher.match, k=self.k))
-        self.results = pd.DataFrame(res, columns=self.result_cols)
-        self.stop_timer('predict')
-
-
-    def flaten_matches(self, matches):
-        ret = [None] * (self.k * 3)
-        for i in range(len(matches)):
-            ret[i*3] = matches[i][1]
-            ret[i*3+1] = matches[i][0]
-            ret[i*3+2] = matches[i][2]
-        return ret
-
-
-    def performance(self):
-        predicted = self.results['libelle_1']
-        right = sum([(bool(lbl) and lbl == self.expected[idx]) \
-                        for idx, lbl in enumerate(predicted)])
-        expected = self.expected
-        wrong = sum([(bool(lbl) and expected[idx] != lbl) \
-                        for idx, lbl in enumerate(predicted)])
-        return {
-            'right guesses': right,
-            'wrong guesses': wrong,
-            'set size': len(expected),
-            'accuracy': float(right)/len(expected),
-            'time': self.time('predict')
-        }
-
+    # Utilities
 
     def start_timer(self, key = 'default'):
         self.timer[key] = [timeit.default_timer(), 0]
@@ -94,3 +110,8 @@ class InseeRunner(object):
             return timeit.default_timer() - self.timer[key][0]
         return self.timer[key][1] - self.timer[key][0]
 
+
+    def flatten(self, tpl):
+        """Flaten a tuple list into a simple list of fixed length (k), padding with None."""
+        out = [i  for item in tpl for i in item]
+        return out + [None]*(self.k*3 - len(out))
