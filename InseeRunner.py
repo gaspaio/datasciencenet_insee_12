@@ -6,13 +6,6 @@ import timeit
 from RuleEngine import RuleEngine
 
 
-def read_testset():
-    test_set = pd.DataFrame.from_csv('data/professions_non_traitees.csv', sep=';', index_col=None)
-    test_set.columns = [u'id', u'labels']
-    test_set.labels = test_set['labels'].apply(lambda x: x.encode('utf8'))
-    return test_set
-
-
 def get_expected_codes(expected_labels, ref):
 
     def get_indexes(l, r):
@@ -27,13 +20,13 @@ class InseeRunner(object):
 
     testset_filename = "data/professions_non_traitees.csv"
 
-    def __init__(self, matcher, inputs, processed_inputs = [], expected = None, k=3):
+    def __init__(self, matcher, inputs, processed_inputs = pd.DataFrame(), expected = None, k=3):
         self.matcher = matcher
         self.rules = RuleEngine()
 
         # A Series of input labels
         data = {'labels_input': inputs}
-        if processed_inputs:
+        if not processed_inputs.empty:
             data['labels_processed'] = processed_inputs
         self.data = pd.DataFrame(data)
 

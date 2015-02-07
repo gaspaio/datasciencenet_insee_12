@@ -86,7 +86,7 @@ class RuleEngine(object):
         """Cleanup the label: upper, remove exotic chars, transliterate."""
         # TRANSLITERATE
         # Basic transliteration. Doesn't correctly handle wierd cases like ^2 (from test file)
-        #label = unidecode(label)
+        label = unidecode(label)
         label = label.upper()
         # Remove out of range chars & extra whitespaces
         label = RuleEngine.ignored_chars.sub(' ', label)

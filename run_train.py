@@ -18,11 +18,16 @@ exact_matcher = ExactMatcher(referentiel)
 
 print "Loading data"
 exemples = pd.DataFrame.from_csv('data/exemples.csv', sep=';', index_col=None, encoding='utf-8')
-exemples.columns = ['label', 'expected']
+exemples.columns = ['labels', 'expected']
 exemples['expected_codes'] = get_expected_codes(exemples.expected, referentiel)
 
 print "Running runner"
-runner = InseeRunner(exact_matcher, exemples.label, expected=exemples.expected_codes)
+runner = InseeRunner(exact_matcher, exemples['labels'], expected=exemples['expected_codes'])
 runner.predict()
 
 print runner.trainperf()
+
+print "Exporting to csv"
+out = runner.results[["libelle_1","libelle_2","libelle_3"]].fillna('')
+#out["idx"] = test_set["id"]
+out.to_csv("trainset_predictions.csv", sep=";", columns=["libelle_1","libelle_2","libelle_3"], header=["Libelle 1", "Libelle 2", "Libelle 3"])
