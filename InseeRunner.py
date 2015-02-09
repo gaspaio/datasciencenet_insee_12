@@ -30,8 +30,6 @@ class InseeRunner(object):
             data['labels_processed'] = processed_inputs
         self.data = pd.DataFrame(data)
 
-#        self.data.columns = ['labels_input']
-
         # A Series of correct codes
         self.expected = expected
         self.k = k

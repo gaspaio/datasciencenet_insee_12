@@ -2,7 +2,8 @@
 
 import pandas as pd
 import Referentiel as ref
-from ExactMatcher import ExactMatcher
+#from ExactMatcher import ExactMatcher
+from JaccardMatcher import JaccardMatcher
 from InseeRunner import InseeRunner
 from RuleEngine import RuleEngine
 import timeit
@@ -32,11 +33,11 @@ if not os.path.isfile("pickles/testset_labels_processed.pkl"):
 
 print "Loading objects"
 referentiel = ref.load()
-exact_matcher = ExactMatcher(referentiel)
+matcher = JaccardMatcher(referentiel)
 test_set = pd.read_pickle("pickles/testset_labels_processed.pkl")
 
 print "Running runner"
-runner = InseeRunner(exact_matcher, test_set['labels'], processed_inputs=test_set['labels_processed'])
+runner = InseeRunner(matcher, test_set['labels'], processed_inputs=test_set['labels_processed'])
 runner.predict()
 print "Running time: {:.1f} seconds".format(runner.time("predict"))
 
