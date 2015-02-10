@@ -26,7 +26,6 @@ class Referentiel(object):
     def run_through_rules(self, labels):
 
         # remove extra spaces
-        exp = re.compile("  +")
         vs_encode = {'$' : "XYZ",'*' : "ATX",}
         rx_encode = re.compile("(%s)" % "|".join(map(re.escape, vs_encode.keys())))
         vs_decode = {'XYZ': "$", 'ATX': "*"}
@@ -34,7 +33,6 @@ class Referentiel(object):
         engine = RuleEngine()
 
         def apply_rules(label):
-            l = exp.sub(' ', label).strip()
             l = rx_encode.sub(lambda mo: vs_encode[mo.string[mo.start():mo.end()]], label)
             l = engine.apply_all(l)
             return rx_decode.sub(lambda mo: vs_decode[mo.string[mo.start():mo.end()]], l)
