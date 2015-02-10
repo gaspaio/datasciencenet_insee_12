@@ -2,20 +2,30 @@
 
 import re
 import pandas as pd
+from nltk.stem.snowball import FrenchStemmer
+from nltk.metrics import jaccard_distance
 
 class JaccardMatcher(object):
 
-    rx_wcs = re.compile(r".+ \$(?P<dig>\d)?.*$")
     rx_stem = re.compile(r"(?:.* |^)(?P<stem>\w+)(?P<wcs>\*+)(?: .*|$)")
+    rx_rwc = re.compile(r" \$\d?")
     count = 0
 
     def __init__(self, referentiel = None):
         self.professions = None
+        self.stemmer = FrenchStemmer()
 
         if referentiel:
             self.professions = referentiel.professions.copy()
+
+            # Ignore labels with wildcards
+            self.professions['label'] = self.professions.label.apply(lambda x: self.rx_rwc.sub('', x))
+            self.professions.drop_duplicates(subset="label", inplace=True)
+
+            # Stem everything
+            self.professions['label'] = self.professions.label.apply(self.stemmer.stem)
+
             self.professions['label_types'] = self.professions['label'].apply(lambda s: set(s.split()))
-            self.professions['wildcard'] = self.professions['label'].apply(self.wildcard_count)
             self.professions['stemmed_word'] = self.professions['label_types'].apply(self.stemmed_word)
 
 
@@ -26,49 +36,33 @@ class JaccardMatcher(object):
         """
         self.count += 1
         print "[{}] processing: {}".format(self.count, label)
-        lbl_types = set(label.split())
+        lbl_types = set(self.stemmer.stem(label).split())
         scores = self.professions.apply(lambda x: \
-            self.modified_jaccard_index(lbl_types, x.label_types, x.wildcard, x.stemmed_word), axis=1)
+            self.score(lbl_types, x.label_types, x.stemmed_word), axis=1)
 
         res = self.professions[['label_orig', 'code']].copy()
         res['score'] = scores
 
-        # This is way too heavy. We're grouping and ordering the whole set just to get three results ...
-        #scores_by_code = res.groupby("code", as_index=False).apply(\
-        #    lambda g: g.loc[g.sort(columns="score", ascending=False).index[0]]).sort(columns="score", ascending=False)
-        #return [(r[1], r[0], r[2]) for r in scores_by_code.head(k).to_records(index=False)]
-
-        res = res.sort(columns="score", ascending=False)
+        res = res.sort(columns="score", ascending=True)
 
         codes = []
-        idxs = []
+        out = []
         for index, row in res.iterrows():
             if row.code in codes: continue
             codes.append(row.code)
-            idxs.append(index)
-            if len(codes) == k: break;
-
-        out = []
-        for idx in idxs:
-            r = res.loc[idx]
+            r = res.loc[index]
             out.append((r.code, r.label_orig, r.score))
+            if len(codes) == k: break;
 
         return out
 
 
-    def modified_jaccard_index(self, lbl_types, ref_types, wildcard_count, stemmed_word):
-
+    def score(self, lbl_types, ref_types, stemmed_word):
+        """Gives the Jaccard distance between the two sets."""
         if stemmed_word:
             ref_types = self.replace_stem(stemmed_word, ref_types, lbl_types)
 
-        num = len(lbl_types.intersection(ref_types))
-        denom = len(lbl_types.union(ref_types))
-
-        if wildcard_count:
-            num = min(num + wildcard_count, len(lbl_types))
-            denom -= 1
-
-        return num/float(denom)
+        return jaccard_distance(lbl_types, ref_types)
 
 
     def replace_stem(self, stem, ref_types, lbl_types):
@@ -87,14 +81,6 @@ class JaccardMatcher(object):
             ref_types.add(lbl_w)
 
         return ref_types
-
-
-
-    def wildcard_count(self, ref_label):
-        m = self.rx_wcs.match(ref_label)
-        if not m: return 0
-        elif m.groups()[0] == None: return 1
-        else: return int(m.groups()[0])
 
 
     def stemmed_word(self, ref_types):
