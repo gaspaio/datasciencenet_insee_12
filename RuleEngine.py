@@ -16,11 +16,20 @@ class RuleEngine(object):
     # TODO: refactor
     replaced_rules = {
         ("**( SANS", "**("): ("** SANS", "**"),
-        ("**( A", "$A **"): ("** A", "$A **"),
         ("**( B", "$B **"): ("** B", "$B **"),
         ("**( C", "$C **"): ("** C", "$C **"),
         ("**( CORPS", "**"): ("** CORPS", "**"),
         ("**( GRADE", "**"): ("** GRADE", "**"),
+
+        ("$Z REMPLACANT* **", "$Z **"): ("REMPLACANT* **", "**"),
+        ("$Z REMPLACEMENT* **", "$Z **"): ("REMPLACEMENT* **", "**"),
+        ("$Z VENTE", "$Z VENDEUR"): ("VENTE", "VENDEUR"),
+        ("$Z SALARIE*", "$Z EMPLOYE"): ("SALARIE", "EMPLOYE"),
+        ("$Z EMPLOI*", "$Z EMPLOYE"):("EMPLOI*", "$Z EMPLOYE"),
+        ("$Z RESTAURATION", "$Z EMPLOYE RESTAURATION"):("RESTAURATION", "EMPLOYE RESTAURATION"),
+        ("$Z COMMERCIAL*", "$Z REPRESENTANT"): ("COMMERCIAL*", "REPRESENTANT"),
+        ("$Z COIFFURE", "$Z COIFFEUR"): ("COIFFURE", "COIFFEUR"),
+        ("$Z PERSONNEL", "$Z"): ("PERSONNEL", "")
     }
 
     # Some rule seem either useless, either uncomprehensible.
@@ -29,6 +38,8 @@ class RuleEngine(object):
         # Useless: no possible match in test data
         ("EBARDEU*", "EBARB*******"),
 
+        # This is mismatch very often (AIDE A DOMICILE becomes AIDE DOMICILE CATEGORIE A)
+        ("**( A", "$A **"),
         ("**( D", "$D **"),
 
         # WTF ??

@@ -5,6 +5,12 @@ import timeit
 
 from RuleEngine import RuleEngine
 
+#wrong
+#Out[34]: [20, 44, 120, 138, 140, 170, 179, 190]
+#wrong = [idx for idx, row in runner.results.iterrows()\
+# if runner.expected[idx] not in \
+#[row['code_1'], row['code_2'], row['code_3']]]
+
 
 def get_expected_codes(expected_labels, ref):
 

@@ -2,7 +2,6 @@
 
 import re
 import pandas as pd
-from nltk.stem.snowball import FrenchStemmer
 from nltk.metrics import jaccard_distance
 
 class JaccardMatcher(object):
@@ -13,17 +12,13 @@ class JaccardMatcher(object):
 
     def __init__(self, referentiel = None):
         self.professions = None
-        self.stemmer = FrenchStemmer()
 
         if referentiel:
             self.professions = referentiel.professions.copy()
 
             # Ignore labels with wildcards
             self.professions['label'] = self.professions.label.apply(lambda x: self.rx_rwc.sub('', x))
-            self.professions.drop_duplicates(subset="label", inplace=True)
-
-            # Stem everything
-            self.professions['label'] = self.professions.label.apply(self.stemmer.stem)
+            self.professions.drop_duplicates(subset=["label", "code"], inplace=True)
 
             self.professions['label_types'] = self.professions['label'].apply(lambda s: set(s.split()))
             self.professions['stemmed_word'] = self.professions['label_types'].apply(self.stemmed_word)
@@ -36,7 +31,7 @@ class JaccardMatcher(object):
         """
         self.count += 1
         print "[{}] processing: {}".format(self.count, label)
-        lbl_types = set(self.stemmer.stem(label).split())
+        lbl_types = set(label.split())
         scores = self.professions.apply(lambda x: \
             self.score(lbl_types, x.label_types, x.stemmed_word), axis=1)
 
