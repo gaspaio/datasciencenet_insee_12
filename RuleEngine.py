@@ -2,6 +2,7 @@
 
 import re
 from unidecode import unidecode
+from functools import reduce
 
 import pandas as pd
 
@@ -21,15 +22,15 @@ class RuleEngine(object):
         ("**( CORPS", "**"): ("** CORPS", "**"),
         ("**( GRADE", "**"): ("** GRADE", "**"),
 
-        ("$Z REMPLACANT* **", "$Z **"): ("REMPLACANT* **", "**"),
-        ("$Z REMPLACEMENT* **", "$Z **"): ("REMPLACEMENT* **", "**"),
-        ("$Z VENTE", "$Z VENDEUR"): ("VENTE", "VENDEUR"),
-        ("$Z SALARIE*", "$Z EMPLOYE"): ("SALARIE", "EMPLOYE"),
-        ("$Z EMPLOI*", "$Z EMPLOYE"):("EMPLOI*", "$Z EMPLOYE"),
-        ("$Z RESTAURATION", "$Z EMPLOYE RESTAURATION"):("RESTAURATION", "EMPLOYE RESTAURATION"),
-        ("$Z COMMERCIAL*", "$Z REPRESENTANT"): ("COMMERCIAL*", "REPRESENTANT"),
-        ("$Z COIFFURE", "$Z COIFFEUR"): ("COIFFURE", "COIFFEUR"),
-        ("$Z PERSONNEL", "$Z"): ("PERSONNEL", "")
+#        ("$Z REMPLACANT* **", "$Z **"): ("REMPLACANT* **", "**"),
+#        ("$Z REMPLACEMENT* **", "$Z **"): ("REMPLACEMENT* **", "**"),
+#        ("$Z VENTE", "$Z VENDEUR"): ("VENTE", "VENDEUR"),
+#        ("$Z SALARIE*", "$Z EMPLOYE"): ("SALARIE", "EMPLOYE"),
+#        ("$Z EMPLOI*", "$Z EMPLOYE"):("EMPLOI*", "EMPLOYE"),
+#        ("$Z RESTAURATION", "$Z EMPLOYE RESTAURATION"):("RESTAURATION", "EMPLOYE RESTAURATION"),
+#        ("$Z COMMERCIAL*", "$Z REPRESENTANT"): ("COMMERCIAL*", "REPRESENTANT"),
+#        ("$Z COIFFURE", "$Z COIFFEUR"): ("COIFFURE", "COIFFEUR"),
+#        ("$Z PERSONNEL", "$Z"): ("PERSONNEL", "")
     }
 
     # Some rule seem either useless, either uncomprehensible.
@@ -39,8 +40,8 @@ class RuleEngine(object):
         ("EBARDEU*", "EBARB*******"),
 
         # This is mismatch very often (AIDE A DOMICILE becomes AIDE DOMICILE CATEGORIE A)
-        ("**( A", "$A **"),
         ("**( D", "$D **"),
+        ("**( A", "$A **"),
 
         # WTF ??
         ("*X *Y *Z ** *X *Y *Z", "*X *Y *Z **"),
@@ -70,7 +71,7 @@ class RuleEngine(object):
 
     def import_rules(self, filepath):
         """Import synonymes file into the rules DF."""
-        synonymes = pd.DataFrame.from_csv(filepath, sep=';', index_col=None, header=None).fillna('')
+        synonymes = pd.DataFrame.from_csv(filepath, sep=';', index_col=None, header=None, encoding="iso-8859-1").fillna('')
         synonymes.columns = ['pat', 'repl']
 
         # remove ignored rules
@@ -158,7 +159,7 @@ class RuleEngine(object):
         if swg:
             # '*' pattern: doesn't make sense
             if '' == swg.group(1) == swg.group(2):
-                raise Exception, "'{}' rule is strange".format(rule[0])
+                raise RuntimeError("'{}' rule is strange".format(rule[0]))
             # 'XXX * YYY' pattern
             elif ' ' == swg.group(1) == swg.group(2):
                 pat = re.sub(r" \* ", r"(?P<swg> (?:\w+ )?)", pat)
@@ -176,7 +177,7 @@ class RuleEngine(object):
         if mwg:
             # '**' pattern doesn't make sense
             if '' == mwg.group(1) == mwg.group(2):
-                raise Exception, "'{}' rule is strange".format(rule[0])
+                raise RuntimeError("'{}' rule is strange".format(rule[0]))
             # 'XXX ** YYY' pattern
             elif ' ' == mwg.group(1) == mwg.group(2):
                 pat = re.sub(r" \*\*+ ", r"(?P<mwg> (?:\w+ )*)", pat)

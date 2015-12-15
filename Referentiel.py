@@ -42,7 +42,7 @@ class Referentiel(object):
 
 
     def import_referentiel(self, filename):
-        data = pd.DataFrame.from_csv(filename, index_col=None, sep=';')
+        data = pd.DataFrame.from_csv(filename, index_col=None, sep=';', encoding="iso-8859-1")
         data.columns = ["code", "label"]
 
         return data

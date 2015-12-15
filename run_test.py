@@ -45,4 +45,4 @@ print "Running time: {:.1f} seconds".format(runner.time("predict"))
 print "Exporting to csv"
 out = runner.results[["libelle_1","libelle_2","libelle_3"]].fillna('')
 out["idx"] = test_set["id"]
-out.to_csv("testset_predictions.csv", sep=";", index=False, columns=["idx", "libelle_1","libelle_2","libelle_3"], header=["ID", "Libelle 1", "Libelle 2", "Libelle 3"])
+out.to_csv("testset_predictions.GOLDEN_BOY.csv", sep=";", index=False, columns=["idx", "libelle_1","libelle_2","libelle_3"], header=["ID", "Libelle 1", "Libelle 2", "Libelle 3"])

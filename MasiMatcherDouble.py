@@ -3,8 +3,9 @@
 import re
 import pandas as pd
 from nltk.metrics import jaccard_distance
+from MasiMatcher import MasiMatcher
 
-class JaccardMatcher(object):
+class MasiMatcherDouble(MasiMatcher):
 
     rx_stem = re.compile(r"(?:.* |^)(?P<stem>\w+)(?P<wcs>\*+)(?: .*|$)")
     rx_rwc = re.compile(r" \$\d?")
